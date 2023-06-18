@@ -1,41 +1,29 @@
 package com.jirafik.security.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
-import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
-
-@RequiredArgsConstructor
 @Configuration
-@EnableMethodSecurity
-@EnableWebSecurity
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
-    private final JwtAuthConverter jwtAuthConverter;
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf()
-                .disable()
-                .authorizeHttpRequests()
-                .anyRequest()
-                .authenticated();
+    public SecurityWebFilterChain configureResourceServer(ServerHttpSecurity httpSecurity){
 
-        http
-                .oauth2ResourceServer()
-                .jwt()
-                .jwtAuthenticationConverter(jwtAuthConverter);
-
-        http
-                .sessionManagement()
-                .sessionCreationPolicy(STATELESS);
-
-        return http.build();
+        return httpSecurity
+                .authorizeExchange()
+                .pathMatchers("/*/*/public/**").permitAll()
+                .anyExchange()
+                .authenticated()
+                .and()
+                .csrf().disable()
+                .httpBasic().disable()
+                .formLogin().disable()
+                .logout().disable()
+                .oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt)
+                .build();
     }
 }
