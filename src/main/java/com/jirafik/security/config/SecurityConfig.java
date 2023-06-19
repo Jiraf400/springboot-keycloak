@@ -4,42 +4,33 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
-@RequiredArgsConstructor
-@EnableWebFluxSecurity
+@EnableWebSecurity
 public class SecurityConfig {
 
-    private final KeycloakLogoutHandler keycloakLogoutHandler;
+    public static final String USER = "user";
+    private final JwtAuthConverter jwtAuthConverter;
 
-    @Bean
-    protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
-        return new RegisterSessionAuthenticationStrategy(new SessionRegistryImpl());
+    public SecurityConfig(JwtAuthConverter jwtAuthConverter) {
+        this.jwtAuthConverter = jwtAuthConverter;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests()
-                .requestMatchers("/hello")
-                .hasRole("USER")
-                .anyRequest()
-                .permitAll();
-
-        http.oauth2Login()
-                .and()
-                .logout()
-                .logoutUrl("/logout")
-                .addLogoutHandler(keycloakLogoutHandler)
-                .logoutSuccessUrl("/");
-
+                .requestMatchers(GET, "/demo/anonymous", "/demo/anonymous/**").permitAll()
+                .requestMatchers(GET, "/demo/user", "/demo/user/**").hasAnyRole(USER)
+                .anyRequest().authenticated();
         http.oauth2ResourceServer()
-                .jwt();
-
+                .jwt()
+                .jwtAuthenticationConverter(jwtAuthConverter);
+        http.sessionManagement().sessionCreationPolicy(STATELESS);
         return http.build();
     }
 
